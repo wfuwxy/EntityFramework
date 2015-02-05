@@ -105,22 +105,16 @@ namespace Microsoft.Data.Entity.ChangeTracking.Internal
 
         private ValueGenerator TryGetValueGenerator(IProperty property)
         {
-            foreach (var foreignKey in property.EntityType.ForeignKeys)
+            if (property.IsKey())
             {
-                for (var propertyIndex = 0; propertyIndex < foreignKey.Properties.Count; propertyIndex++)
-                {
-                    if (property == foreignKey.Properties[propertyIndex]
-                        && property.IsKey())
-                    {
-                        var generationProperty = foreignKey.GetRootPrincipals(propertyIndex).FirstOrDefault(p => p.GenerateValueOnAdd);
+                var generationProperty = property.GetGenerationProperty();
 
-                        if (generationProperty != null)
-                        {
-                            return _valueGeneratorCache.Service.GetGenerator(generationProperty);
-                        }
-                    }
+                if (generationProperty != null)
+                {
+                    return _valueGeneratorCache.Service.GetGenerator(generationProperty);
                 }
             }
+
             return null;
         }
 
