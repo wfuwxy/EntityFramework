@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using Microsoft.Data.Entity.Internal;
+using Microsoft.Data.Entity.Metadata;
 using Xunit;
 
 namespace Microsoft.Data.Entity.Tests.ChangeTracking
@@ -139,13 +141,40 @@ namespace Microsoft.Data.Entity.Tests.ChangeTracking
         }
 
         [Fact]
-        public void Can_get_property_entry_by_lambda()
+        public void Can_get_generic_property_entry_by_name()
+        {
+            using (var context = new FreezerContext())
+            {
+                var entity = context.Add(new Chunky()).Entity;
+
+                Assert.Equal("Monkey", context.Entry(entity).Property<int>("Monkey").Name);
+            }
+        }
+
+        [Fact]
+        public void Can_get_generic_property_entry_by_lambda()
         {
             using (var context = new FreezerContext())
             {
                 var entity = context.Add(new Chunky()).Entity;
 
                 Assert.Equal("Monkey", context.Entry(entity).Property(e => e.Monkey).Name);
+            }
+        }
+
+        [Fact]
+        public void Throws_when_wrong_property_name_is_used_while_getting_property_entry_by_name()
+        {
+            using (var context = new FreezerContext())
+            {
+                var entity = context.Add(new Chunky()).Entity;
+
+                Assert.Equal(Strings.PropertyNotFound("Chimp", entity.GetType()),
+                    Assert.Throws<ModelItemNotFoundException>(() => context.Entry(entity).Property("Chimp").Name).Message);
+                Assert.Equal(Strings.PropertyNotFound("Chimp", entity.GetType()),
+                    Assert.Throws<ModelItemNotFoundException>(() => context.Entry((object)entity).Property("Chimp").Name).Message);
+                Assert.Equal(Strings.PropertyNotFound("Chimp", entity.GetType()),
+                    Assert.Throws<ModelItemNotFoundException>(() => context.Entry(entity).Property<int>("Chimp").Name).Message);
             }
         }
 

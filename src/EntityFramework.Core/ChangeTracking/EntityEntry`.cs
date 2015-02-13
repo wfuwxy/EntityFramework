@@ -28,5 +28,13 @@ namespace Microsoft.Data.Entity.ChangeTracking
 
             return new PropertyEntry<TEntity, TProperty>(InternalEntry, propertyInfo.Name);
         }
+
+        public virtual PropertyEntry<TEntity, TProperty> Property<TProperty>(
+            [NotNull] string propertyName)
+        {
+            Check.NotNull(propertyName, nameof(propertyName));
+
+            return new PropertyEntry<TEntity, TProperty>(InternalEntry, propertyName);
+        }
     }
 }
