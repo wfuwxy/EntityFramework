@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -70,6 +71,21 @@ namespace Microsoft.Data.Entity.Relational
 
         public virtual Task<bool> HasTablesAsync(CancellationToken cancellationToken = default(CancellationToken)) 
             => RelationalDataStoreCreator.HasTablesAsync(cancellationToken);
+
+        public virtual int ExecuteNonQuery([NotNull]string sql, params object[] parameters)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public virtual T ExecuteScalar<T>([NotNull]string sql, params object[] parameters)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public virtual IEnumerable<TEntity> Query<TEntity>([NotNull]string sql, params object[] parameters)
+        {
+            throw new System.NotImplementedException();
+        }
 
         private RelationalDataStoreCreator RelationalDataStoreCreator => (RelationalDataStoreCreator)((IAccessor<DataStoreCreator>)this).Service;
 
