@@ -7,11 +7,9 @@ namespace Microsoft.Data.Entity.FunctionalTests
 {
     public abstract class OneToOneQueryFixtureBase
     {
-        protected static Model CreateModel()
-        {
-            var model = new Model();
-            var modelBuilder = new ModelBuilderFactory().CreateConventionBuilder(model);
 
+        protected virtual void OnModelCreating(ModelBuilder modelBuilder)
+        {
             modelBuilder
                 .Entity<Address>(e => e.HasOne(a => a.Resident).WithOne(p => p.Address));
 
@@ -25,7 +23,6 @@ namespace Microsoft.Data.Entity.FunctionalTests
                     e => e.HasOne(p => p.Address).WithOne(a => a.Resident)
                         .ForeignKey(typeof(Address2), "PersonId"));
 
-            return model;
         }
 
         protected static void AddTestData(DbContext context)

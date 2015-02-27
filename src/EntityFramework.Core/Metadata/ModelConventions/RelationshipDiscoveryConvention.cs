@@ -58,7 +58,8 @@ namespace Microsoft.Data.Entity.Metadata.ModelConventions
                         Type reverseEntityClrType;
                         if (!reversePropertyInfo.IsCandidateNavigationProperty(out reverseEntityClrType)
                             || !targetEntityTypeBuilder.CanAddNavigation(reversePropertyInfo.Name, ConfigurationSource.Convention)
-                            || entityType.Type != reverseEntityClrType)
+                            || entityType.Type != reverseEntityClrType
+                            || navigationPropertyInfo == reversePropertyInfo)
                         {
                             continue;
                         }
