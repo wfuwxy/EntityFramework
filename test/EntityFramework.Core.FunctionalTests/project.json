@@ -1,17 +1,17 @@
 {
-    "dependencies": {
-        "EntityFramework.InMemory": "7.0.0-*",
-        "xunit.runner.kre": "1.0.0-*"
-    },
-    "commands": {
-        "test": "xunit.runner.kre"
-    },
-    "frameworks": {
-        "aspnet50": { },
-        "aspnetcore50": {
-            "dependencies": {
-                "Microsoft.CSharp": "4.0.0-beta-*"
-            }
-        }
+  "dependencies": {
+    "EntityFramework.InMemory": "7.0.0-beta3",
+    "xunit.runner.kre": "1.0.0-beta3"
+  },
+  "commands": {
+    "test": "xunit.runner.kre"
+  },
+  "frameworks": {
+    "aspnet50": {},
+    "aspnetcore50": {
+      "dependencies": {
+        "Microsoft.CSharp": "4.0.0-beta-22605"
+      }
     }
+  }
 }

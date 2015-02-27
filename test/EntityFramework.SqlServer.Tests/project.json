@@ -1,19 +1,19 @@
 {
-    "dependencies": {
-        "EntityFramework.SqlServer": "7.0.0-*",
-        "Moq": "4.2.1312.1622",
-        "xunit.runner.kre": "1.0.0-*"
-    },
-    "code": [
-        "**\\*.cs",
-        "..\\Shared\\ApiConsistencyTestBase.cs",
-        "..\\EntityFramework.Relational.Tests\\SqlGeneratorTestBase.cs",
-        "..\\Shared\\TestHelpers.cs"
-    ],
-    "commands": {
-        "test": "xunit.runner.kre"
-    },
-    "frameworks": {
-        "aspnet50": { }
-    }
+  "dependencies": {
+    "EntityFramework.SqlServer": "7.0.0-beta3",
+    "Moq": "4.2.1312.1622",
+    "xunit.runner.kre": "1.0.0-beta3"
+  },
+  "code": [
+    "**\\*.cs",
+    "..\\Shared\\ApiConsistencyTestBase.cs",
+    "..\\EntityFramework.Relational.Tests\\SqlGeneratorTestBase.cs",
+    "..\\Shared\\TestHelpers.cs"
+  ],
+  "commands": {
+    "test": "xunit.runner.kre"
+  },
+  "frameworks": {
+    "aspnet50": {}
+  }
 }

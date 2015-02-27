@@ -1,22 +1,22 @@
 {
-    "dependencies": {
-        "Microsoft.Framework.ConfigurationModel.Json": "1.0.0-*",
-        "xunit.runner.kre": "1.0.0-*"
+  "dependencies": {
+    "Microsoft.Framework.ConfigurationModel.Json": "1.0.0-beta3",
+    "xunit.runner.kre": "1.0.0-beta3"
+  },
+  "commands": {
+    "test": "xunit.runner.kre"
+  },
+  "frameworks": {
+    "aspnetcore50": {
+      "dependencies": {
+        "System.ComponentModel.Annotations": "4.0.10-beta-22605",
+        "System.Net.NetworkInformation": "4.0.10-beta-22605"
+      }
     },
-    "commands": {
-        "test": "xunit.runner.kre"
-    },
-    "frameworks": {
-        "aspnetcore50": {
-            "dependencies": {
-                "System.ComponentModel.Annotations": "4.0.10-beta-*",
-                "System.Net.NetworkInformation":  "4.0.10-beta-*"
-            }
-        },
-        "aspnet50": {
-            "frameworkAssemblies": {
-                "System.ComponentModel.DataAnnotations": ""
-            }
-        }
+    "aspnet50": {
+      "frameworkAssemblies": {
+        "System.ComponentModel.DataAnnotations": ""
+      }
     }
+  }
 }
