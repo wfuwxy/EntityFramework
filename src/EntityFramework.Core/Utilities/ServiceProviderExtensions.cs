@@ -11,7 +11,7 @@ using Microsoft.Data.Entity.Utilities;
 
 namespace Microsoft.Framework.DependencyInjection
 {
-    internal static class ServiceProviderExtensions
+    public static class ServiceProviderExtensions
     {
         public static TService TryGetService<TService>([NotNull] this IServiceProvider serviceProvider)
             where TService : class

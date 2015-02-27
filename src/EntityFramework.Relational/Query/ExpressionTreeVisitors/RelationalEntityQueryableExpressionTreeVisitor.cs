@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Query;
 using Microsoft.Data.Entity.Query.ExpressionTreeVisitors;
@@ -67,6 +68,16 @@ namespace Microsoft.Data.Entity.Relational.Query.ExpressionTreeVisitors
 
             return base.VisitMethodCallExpression(methodCallExpression);
         }
+
+        protected override Expression VisitConstantExpression(ConstantExpression constantExpression)
+        {
+            var queryable = constantExpression.Value as IRelationalCustomQueryable;
+
+            return (queryable != null)
+                ? VisitRelationalCustomQueryable(queryable.Sql, queryable.ElementType)
+                : base.VisitConstantExpression(constantExpression);
+        }
+
 
         protected override Expression VisitEntityQueryable(Type elementType)
         {
@@ -136,6 +147,83 @@ namespace Microsoft.Data.Entity.Relational.Query.ExpressionTreeVisitors
                             Expression.Constant(keyFactory),
                             Expression.Constant(keyProperties),
                             materializer
+                        });
+            }
+
+            return Expression.Call(
+                QueryModelVisitor.QueryCompilationContext.QueryMethodProvider.QueryMethod
+                    .MakeGenericMethod(queryMethodInfo.ReturnType),
+                EntityQueryModelVisitor.QueryContextParameter,
+                Expression.Constant(new CommandBuilder(selectExpression, QueryModelVisitor.QueryCompilationContext)),
+                Expression.Lambda(
+                    Expression.Call(queryMethodInfo, queryMethodArguments),
+                    _readerParameter));
+        }
+
+        protected Expression VisitRelationalCustomQueryable(string sql, Type elementType)
+        {
+            Check.NotNull(elementType, nameof(elementType));
+
+            var queryMethodInfo = RelationalQueryModelVisitor.CreateValueReaderMethodInfo;
+            var entityType = QueryModelVisitor.QueryCompilationContext.Model.GetEntityType(elementType);
+
+            var selectExpression = new SelectExpression();
+            var tableName = QueryModelVisitor.QueryCompilationContext.GetTableName(entityType);
+
+            selectExpression
+                .AddTable(
+                    new CustomTableExpression(
+                        string.Format("({0})", sql),
+                        QueryModelVisitor.QueryCompilationContext.GetSchema(entityType),
+                        _querySource.ItemName.StartsWith("<generated>_")
+                            ? tableName.First().ToString().ToLower()
+                            : _querySource.ItemName,
+                        _querySource));
+
+            QueryModelVisitor.AddQuery(_querySource, selectExpression);
+
+            var queryMethodArguments
+                = new List<Expression>
+                    {
+                        Expression.Constant(_querySource),
+                        EntityQueryModelVisitor.QueryContextParameter,
+                        EntityQueryModelVisitor.QuerySourceScopeParameter,
+                        _readerParameter
+                    };
+
+            if (QueryModelVisitor.QuerySourceRequiresMaterialization(_querySource))
+            {
+                foreach (var property in entityType.Properties)
+                {
+                    selectExpression.AddToProjection(
+                        QueryModelVisitor.QueryCompilationContext
+                            .GetColumnName(property),
+                        property,
+                        _querySource);
+                }
+
+                queryMethodInfo = RelationalQueryModelVisitor.CreateEntityMethodInfo.MakeGenericMethod(elementType);
+
+                var keyProperties
+                    = entityType.GetPrimaryKey().Properties;
+
+                var keyFactory
+                    = QueryModelVisitor.QueryCompilationContext.EntityKeyFactorySource
+                        .GetKeyFactory(keyProperties);
+
+                var materializer
+                    = QueryModelVisitor.QueryCompilationContext.EntityMaterializerSource
+                        .GetMaterializer(entityType);
+
+                queryMethodArguments.AddRange(
+                    new Expression[]
+                        {
+                            Expression.Constant(0),
+                            Expression.Constant(entityType),
+                            Expression.Constant(QueryModelVisitor.QuerySourceRequiresTracking(_querySource)),
+                            Expression.Constant(keyFactory),
+                            Expression.Constant(keyProperties),
+                            Expression.Constant(materializer)
                         });
             }
 
