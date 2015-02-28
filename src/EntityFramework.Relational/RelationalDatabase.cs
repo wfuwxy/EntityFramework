@@ -53,39 +53,24 @@ namespace Microsoft.Data.Entity.Relational
 
         public virtual void CreateTables() => RelationalDataStoreCreator.CreateTables(Model);
 
-        public virtual Task CreateTablesAsync(CancellationToken cancellationToken = default(CancellationToken)) 
+        public virtual Task CreateTablesAsync(CancellationToken cancellationToken = default(CancellationToken))
             => RelationalDataStoreCreator.CreateTablesAsync(Model, cancellationToken);
 
         public virtual void Delete() => RelationalDataStoreCreator.Delete();
 
-        public virtual Task DeleteAsync(CancellationToken cancellationToken = default(CancellationToken)) 
+        public virtual Task DeleteAsync(CancellationToken cancellationToken = default(CancellationToken))
             => RelationalDataStoreCreator.DeleteAsync(cancellationToken);
 
-        public virtual bool Exists() 
+        public virtual bool Exists()
             => RelationalDataStoreCreator.Exists();
 
-        public virtual Task<bool> ExistsAsync(CancellationToken cancellationToken = default(CancellationToken)) 
+        public virtual Task<bool> ExistsAsync(CancellationToken cancellationToken = default(CancellationToken))
             => RelationalDataStoreCreator.ExistsAsync(cancellationToken);
 
         public virtual bool HasTables() => RelationalDataStoreCreator.HasTables();
 
-        public virtual Task<bool> HasTablesAsync(CancellationToken cancellationToken = default(CancellationToken)) 
+        public virtual Task<bool> HasTablesAsync(CancellationToken cancellationToken = default(CancellationToken))
             => RelationalDataStoreCreator.HasTablesAsync(cancellationToken);
-
-        public virtual int ExecuteNonQuery([NotNull]string sql, params object[] parameters)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public virtual T ExecuteScalar<T>([NotNull]string sql, params object[] parameters)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public virtual IEnumerable<TEntity> Query<TEntity>([NotNull]string sql, params object[] parameters)
-        {
-            throw new System.NotImplementedException();
-        }
 
         private RelationalDataStoreCreator RelationalDataStoreCreator => (RelationalDataStoreCreator)((IAccessor<DataStoreCreator>)this).Service;
 

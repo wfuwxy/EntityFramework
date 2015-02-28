@@ -30,7 +30,7 @@ namespace Microsoft.Framework.DependencyInjection
             }
         }
 
-        public static object TryGetService([NotNull] this IServiceProvider serviceProvider, Type serviceType)
+        public static object TryGetService([NotNull] this IServiceProvider serviceProvider, [NotNull] Type serviceType)
         {
             Check.NotNull(serviceProvider, nameof(serviceProvider));
             Check.NotNull(serviceType, nameof(serviceType));
@@ -64,7 +64,7 @@ namespace Microsoft.Framework.DependencyInjection
             }
         }
 
-        public static object GetRequiredServiceChecked([NotNull] this IServiceProvider serviceProvider, Type serviceType)
+        public static object GetRequiredServiceChecked([NotNull] this IServiceProvider serviceProvider, [NotNull] Type serviceType)
         {
             Check.NotNull(serviceProvider, nameof(serviceProvider));
             Check.NotNull(serviceType, nameof(serviceType));

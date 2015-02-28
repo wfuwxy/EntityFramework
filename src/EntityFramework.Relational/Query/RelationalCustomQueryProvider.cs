@@ -8,7 +8,6 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Query;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
@@ -17,22 +16,26 @@ namespace Microsoft.Data.Entity.Relational.Query
 {
     class RelationalCustomQueryProvider : IAsyncQueryProvider
     {
-        private readonly DbContextService<DbContext> _context;
-        private readonly DbContextService<DataStore> _dataStore;
+        private readonly DbContext _context;
+        private readonly DataStore _dataStore;
         private readonly ICompiledQueryCache _compiledQueryCache;
+        private readonly QueryContextFactory _queryContextFactory;
 
         public RelationalCustomQueryProvider(
-            [NotNull] DbContextService<DbContext> context,
-            [NotNull] DbContextService<DataStore> dataStore,
-            [NotNull] ICompiledQueryCache compiledQueryCache)
+            [NotNull] DbContext context,
+            [NotNull] DataStore dataStore,
+            [NotNull] ICompiledQueryCache compiledQueryCache,
+            [NotNull] QueryContextFactory queryContextFactory)
         {
             Check.NotNull(context, nameof(context));
             Check.NotNull(dataStore, nameof(dataStore));
             Check.NotNull(compiledQueryCache, nameof(compiledQueryCache));
+            Check.NotNull(queryContextFactory, nameof(queryContextFactory));
 
             _context = context;
             _dataStore = dataStore;
             _compiledQueryCache = compiledQueryCache;
+            _queryContextFactory = queryContextFactory;
         }
 
         public virtual IQueryable<TElement> CreateQuery<TElement>([NotNull] Expression expression)
@@ -53,35 +56,35 @@ namespace Microsoft.Data.Entity.Relational.Query
         {
             Check.NotNull(expression, nameof(expression));
 
-            var queryContext = _dataStore.Service.CreateQueryContext();
+            var queryContext = _queryContextFactory.CreateQueryContext();
 
-            queryContext.ContextType = _context.Service.GetType();
+            queryContext.ContextType = _context.GetType();
 
-            return _compiledQueryCache.Execute<TResult>(expression, _dataStore.Service, queryContext);
+            return _compiledQueryCache.Execute<TResult>(expression, _dataStore, queryContext);
         }
 
         public virtual IAsyncEnumerable<TResult> ExecuteAsync<TResult>(Expression expression)
         {
             Check.NotNull(expression, nameof(expression));
 
-            var queryContext = _dataStore.Service.CreateQueryContext();
+            var queryContext = _queryContextFactory.CreateQueryContext();
 
-            queryContext.ContextType = _context.Service.GetType();
+            queryContext.ContextType = _context.GetType();
 
-            return _compiledQueryCache.ExecuteAsync<TResult>(expression, _dataStore.Service, queryContext);
+            return _compiledQueryCache.ExecuteAsync<TResult>(expression, _dataStore, queryContext);
         }
 
         public virtual Task<TResult> ExecuteAsync<TResult>(Expression expression, CancellationToken cancellationToken)
         {
             Check.NotNull(expression, nameof(expression));
 
-            var queryContext = _dataStore.Service.CreateQueryContext();
+            var queryContext = _queryContextFactory.CreateQueryContext();
 
             queryContext.CancellationToken = cancellationToken;
-            queryContext.ContextType = _context.Service.GetType();
+            queryContext.ContextType = _context.GetType();
 
             return _compiledQueryCache
-                .ExecuteAsync<TResult>(expression, _dataStore.Service, queryContext, cancellationToken);
+                .ExecuteAsync<TResult>(expression, _dataStore, queryContext, cancellationToken);
         }
 
         public virtual object Execute([NotNull] Expression expression)

@@ -5,9 +5,7 @@ using System;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Data.Entity.Infrastructure;
-using Microsoft.Data.Entity.Query;
 using Microsoft.Data.Entity.Relational.Query;
-using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
 using Microsoft.Framework.DependencyInjection;
 
@@ -24,13 +22,11 @@ namespace Microsoft.Data.Entity.Relational
             _serviceProvider = ((IAccessor<IServiceProvider>)dbSet).Service;
         }
 
-        public virtual IQueryable<TEntity> Query([NotNull]string sql, params object[] parameters)
+        public virtual IQueryable<TEntity> Query([NotNull]string query)
         {
-            return new RelationalCustomQueryable<TEntity>(sql,
-                new RelationalCustomQueryProvider(
-                    _serviceProvider.GetRequiredServiceChecked<DbContextService<DbContext>>(),
-                    _serviceProvider.GetRequiredServiceChecked<DbContextService<DataStore>>(),
-                    _serviceProvider.GetRequiredServiceChecked<ICompiledQueryCache>()));
+            return new RelationalCustomQueryable<TEntity>(
+                _serviceProvider.GetRequiredServiceChecked<RelationalCustomQueryProvider>(),
+                query);
         }
     }
 }

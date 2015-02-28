@@ -7,6 +7,6 @@ namespace Microsoft.Data.Entity.Relational.Query
 {
     public interface IRelationalCustomQueryable : IQueryable
     {
-        string Sql { get; }
+        string Query { get; }
     }
 }

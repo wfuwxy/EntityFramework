@@ -8,14 +8,16 @@ using Microsoft.Data.Entity.Utilities;
 using Remotion.Linq;
 
 namespace Microsoft.Data.Entity.Relational.Query
-{    public class RelationalCustomQueryable<TEntity> : QueryableBase<TEntity>, IRelationalCustomQueryable
+{
+    public class RelationalCustomQueryable<TEntity> : QueryableBase<TEntity>, IRelationalCustomQueryable
     {
-        public string Sql { get; private set; }
+        public virtual string Query { get; private set; }
 
-        public RelationalCustomQueryable(string sql, [NotNull] IQueryProvider provider)
+        public RelationalCustomQueryable([NotNull] IQueryProvider provider, [NotNull] string query)
         : base(Check.NotNull(provider, nameof(provider)))
         {
-            Sql = sql;
+            Check.NotNull(query, nameof(query));
+            Query = query;
         }
 
         public RelationalCustomQueryable([NotNull] IQueryProvider provider, [NotNull] Expression expression)
@@ -27,7 +29,7 @@ namespace Microsoft.Data.Entity.Relational.Query
 
         public override string ToString()
         {
-            return Sql;
+            return Query;
         }
     }
 }

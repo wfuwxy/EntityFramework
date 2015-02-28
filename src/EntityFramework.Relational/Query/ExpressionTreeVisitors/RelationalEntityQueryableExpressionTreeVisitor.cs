@@ -74,7 +74,7 @@ namespace Microsoft.Data.Entity.Relational.Query.ExpressionTreeVisitors
             var queryable = constantExpression.Value as IRelationalCustomQueryable;
 
             return (queryable != null)
-                ? VisitRelationalCustomQueryable(queryable.Sql, queryable.ElementType)
+                ? VisitRelationalCustomQueryable(queryable.Query, queryable.ElementType)
                 : base.VisitConstantExpression(constantExpression);
         }
 
