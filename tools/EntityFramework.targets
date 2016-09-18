@@ -1,84 +1,165 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <PackagesTargetsFile>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)Packages.targets</PackagesTargetsFile>
-    <BuildDependsOn>CheckPackageReferences;$(BuildDependsOn)</BuildDependsOn>
+    <DefineConstants>$(DefineConstants);CSPROJ</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFrameworkMoniker)' == '.NETFramework,Version=v4.5.1' ">$(DefineConstants);NET451</DefineConstants>
+    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
+    <NoWarn>$(NoWarn);</NoWarn>
+    <NuGetTarget Condition=" '$(NuGetTarget)' == '' ">$(TargetFrameworkMoniker)</NuGetTarget>
+    <ProjectLockTargetsFile>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)project.lock.targets</ProjectLockTargetsFile>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <PackageReference>
-      <Visible>False</Visible>
-      <TargetFramework>portable-net451+win81+wpa81</TargetFramework>
-      <Assemblies />
-    </PackageReference>
-  </ItemDefinitionGroup>
-  <UsingTask
-    TaskName="WritePackageReferences"
-    TaskFactory="CodeTaskFactory"
-    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+  <UsingTask TaskName="GenerateProjectLockTargets"
+             TaskFactory="CodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
     <ParameterGroup>
-      <TargetsFile ParameterType="System.String" Required="true" />
-      <PackageReferences ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <NuGetPackagesDirectory />
+      <NuGetTarget />
+      <ProjectLockFile />
+      <ProjectLockTargetsFile />
     </ParameterGroup>
     <Task>
-      <Code Type="Fragment" Language="cs">
+      <Reference Include="System.Web.Extensions" />
+      <Reference Include="Microsoft.CSharp" />
+      <Using Namespace="System.Web.Script.Serialization" />
+      <Code Language="cs">
         <![CDATA[
-        var packagesFolder = Environment.GetEnvironmentVariable("KRE_PACKAGES")
-            ?? Path.Combine(
-                Environment.GetEnvironmentVariable("USERPROFILE") ?? Environment.GetEnvironmentVariable("HOME"),
-                ".k",
-                "packages");
-
-        if (!Directory.Exists(packagesFolder))
+        Directory.CreateDirectory(Path.GetDirectoryName(ProjectLockTargetsFile));
+        using (var writer = File.CreateText(ProjectLockTargetsFile))
         {
-            Log.LogError("No packages found.");
+            dynamic lockFile = new JavaScriptSerializer().DeserializeObject(File.ReadAllText(ProjectLockFile));
+            var libraries = lockFile["libraries"];
+            var targets = lockFile["targets"];
+            var target = targets[NuGetTarget];
 
-            return false;
-        }
-
-        Directory.CreateDirectory(Path.GetDirectoryName(TargetsFile));
-        using (var writer = new StreamWriter(TargetsFile, append: false))
-        {
-            writer.WriteLine("<Project xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>");
+            writer.WriteLine("<?xml version='1.0' encoding='utf-8' ?>");
+            writer.WriteLine("<Project ToolsVersion='14.0' xmlns='http://schemas.microsoft.com/developer/msbuild/2003'>");
             writer.WriteLine("  <ItemGroup>");
 
-            var installedPackages = Directory.EnumerateDirectories(packagesFolder).Select(d => Path.GetFileName(d))
-                .ToArray();
-            foreach (var package in PackageReferences)
+            foreach (var libraryKey in libraries.Keys)
             {
-                var id = package.ItemSpec;
-                var targetFramework = package.GetMetadata("TargetFramework");
-                var assemblies = package.GetMetadata("Assemblies");
-                if (string.IsNullOrEmpty(assemblies))
-                  assemblies = id;
-
-                if (!installedPackages.Contains(id))
+                var library = libraries[libraryKey];
+                if (!library.ContainsKey("files"))
                 {
-                    Log.LogError("Package '{0}' not found.", id);
+                    continue;
+                }
+                foreach (var file in library["files"])
+                {
+                    if (file.EndsWith(".cs"))
+                    {
+                        writer.WriteLine("    <Compile Include=\"" + 
+                            Path.Combine(NuGetPackagesDirectory, 
+                                libraryKey, 
+                                file)
+                            .Replace("/", "\\")
+                            + "\">");
+                        writer.WriteLine("       <Link>" + file + "</Link>");
+                        writer.WriteLine("    </Compile>");
+                    }
+                }
+            }
 
+            var frameworkAssemblies = new List<string>();
+
+            foreach (var dependencyKey in target.Keys)
+            {
+                var dependency = target[dependencyKey];
+
+                if (dependency["type"] != "package")
+                {
                     continue;
                 }
 
-                var latestVersion = Directory.EnumerateDirectories(Path.Combine(packagesFolder, id))
-                    .OrderByDescending(p => p).FirstOrDefault();
-                if (latestVersion == null)
+                if (dependency.ContainsKey("frameworkAssemblies"))
                 {
-                    Log.LogError("Package '{0}' version not found.", id);
+                    foreach (var frameworkAssembly in dependency["frameworkAssemblies"])
+                    {
+                        if (!frameworkAssemblies.Contains(frameworkAssembly))
+                        {
+                            frameworkAssemblies.Add(frameworkAssembly);
+                        }
+                    }
                 }
 
-                foreach (var assembly in assemblies.Split(';'))
+                if (dependency.ContainsKey("compile"))
                 {
-                    var hintPath = Path.Combine(
-                        packagesFolder,
-                        latestVersion,
-                        "lib",
-                        targetFramework,
-                        assembly + ".dll");
+                    foreach (var reference in dependency["compile"].Keys)
+                    {
+                        if (Path.GetFileName(reference) == "_._")
+                        {
+                            continue;
+                        }
 
-                    writer.WriteLine("    <Reference Include='{0}'>", assembly);
-                    writer.WriteLine("      <HintPath>{0}</HintPath>", hintPath);
-                    writer.WriteLine("      <Private>True</Private>");
-                    writer.WriteLine("    </Reference>");
+                        writer.Write("    <Reference Include='");
+                        writer.Write(Path.GetFileNameWithoutExtension(reference));
+                        writer.WriteLine("'>");
+                        writer.Write(@"      <HintPath>");
+                        writer.Write(Path.Combine(NuGetPackagesDirectory, dependencyKey, reference).Replace('/', '\\'));
+                        writer.WriteLine("</HintPath>");
+                        writer.WriteLine("    </Reference>");
+                    }
                 }
+                
+                var contents = new List<string>();
+
+                if (dependency.ContainsKey("runtime"))
+                {
+                    contents.AddRange(dependency["runtime"].Keys);
+                }
+                
+                if (dependency.ContainsKey("native"))
+                {
+                    contents.AddRange(dependency["native"].Keys);
+                }
+                
+                // Only pull in native assets for SQLite.Native.
+                // TODO address this generally if using the rid fallback graph from MSBuild is ever becomes a thing
+                if (dependencyKey.StartsWith("SQLite.Native", StringComparison.OrdinalIgnoreCase) 
+                    && dependency.ContainsKey("runtimeTargets"))
+                {
+                    foreach (var assetKey in dependency["runtimeTargets"].Keys)
+                    {
+                        var asset = dependency["runtimeTargets"][assetKey];
+                        if (!asset.ContainsKey("rid")) 
+                        {
+                            continue;
+                        }
+                        var rid = asset["rid"];
+                        if (rid.StartsWith("win7-"))
+                        {
+                            writer.Write("   <Content Include='");
+                            writer.Write(
+                                Path.Combine(NuGetPackagesDirectory, 
+                                    dependencyKey,
+                                    assetKey).Replace('/', '\\'));
+                            writer.WriteLine("'>");
+                            
+                            // this special subfolder structure only works because Microsoft.Data.Sqlite knows how to
+                            // look in x86/x64 folders for sqlite3.dll
+                            writer.WriteLine("      <Link>" + rid.Substring(rid.Length - 3) + @"\%(Filename)%(Extension)</Link>");
+                            
+                            writer.WriteLine("      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>");
+                            writer.WriteLine("      <Visible>False</Visible>");
+                            writer.WriteLine("  </Content>");
+                        }
+                    }
+                }
+                                
+                foreach (var content in contents)
+                {
+                    writer.Write(@"    <Content Include='");
+                    writer.Write(Path.Combine(NuGetPackagesDirectory, dependencyKey, content).Replace('/', '\\'));
+                    writer.WriteLine("'>");
+                    writer.WriteLine("      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>");
+                    writer.WriteLine("      <Visible>False</Visible>");
+                    writer.WriteLine("    </Content>");
+                }
+            }
+
+            foreach (var frameworkAssembly in frameworkAssemblies)
+            {
+                writer.Write("    <Reference Include='");
+                writer.Write(frameworkAssembly);
+                writer.WriteLine("' />");
             }
 
             writer.WriteLine("  </ItemGroup>");
@@ -88,15 +169,12 @@
       </Code>
     </Task>
   </UsingTask>
-  <Target Name="CheckPackageReferences">
-    <Error
-      Text="Package references not found. Run 'build initialize' before opening the solution for the first time."
-      Condition="!Exists('$(PackagesTargetsFile)')" />
+  <Target Name="GenerateProjectLockTargets">
+    <GenerateProjectLockTargets NuGetPackagesDirectory="$(NuGetPackagesDirectory)"
+                                NuGetTarget="$(NuGetTarget)"
+                                ProjectLockFile="$(ProjectLockFile)"
+                                ProjectLockTargetsFile="$(ProjectLockTargetsFile)" />
   </Target>
-  <Target Name="WritePackageReferences">
-    <WritePackageReferences
-      TargetsFile="$(PackagesTargetsFile)"
-      PackageReferences="@(PackageReference)" />
-  </Target>
-  <Import Project="$(PackagesTargetsFile)" Condition="Exists('$(PackagesTargetsFile)')" />
+  <Import Condition="Exists('$(ProjectLockTargetsFile)')"
+          Project="$(ProjectLockTargetsFile)" />
 </Project>

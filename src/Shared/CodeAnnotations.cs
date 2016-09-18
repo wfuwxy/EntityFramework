@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -79,6 +79,17 @@ namespace JetBrains.Annotations
         public ImplicitUseTargetFlags TargetFlags { get; private set; }
     }
 
+    [AttributeUsage(AttributeTargets.Constructor | AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Delegate)]
+    internal sealed class StringFormatMethodAttribute : Attribute
+    {
+        public StringFormatMethodAttribute([NotNull] string formatParameterName)
+        {
+            FormatParameterName = formatParameterName;
+        }
+
+        [NotNull] public string FormatParameterName { get; private set; }
+    }
+
     [Flags]
     internal enum ImplicitUseKindFlags
     {
@@ -96,12 +107,5 @@ namespace JetBrains.Annotations
         Itself = 1,
         Members = 2,
         WithMembers = Itself | Members
-    }
-}
-
-namespace Microsoft.Data.Entity.Relational.Utilities
-{
-    internal sealed class ValidatedNotNullAttribute : Attribute
-    {
     }
 }

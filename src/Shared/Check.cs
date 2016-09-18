@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using JetBrains.Annotations;
-using Microsoft.Data.Entity.Internal;
+using Microsoft.EntityFrameworkCore.Internal;
 
-namespace Microsoft.Data.Entity.Utilities
+namespace Microsoft.EntityFrameworkCore.Utilities
 {
     [DebuggerStepThrough]
     internal static class Check
@@ -19,7 +19,8 @@ namespace Microsoft.Data.Entity.Utilities
         {
             if (ReferenceEquals(value, null))
             {
-                NotEmpty(parameterName, "parameterName");
+                NotEmpty(parameterName, nameof(parameterName));
+
                 throw new ArgumentNullException(parameterName);
             }
 
@@ -34,9 +35,10 @@ namespace Microsoft.Data.Entity.Utilities
         {
             if (ReferenceEquals(value, null))
             {
-                NotEmpty(parameterName, "parameterName");
-                NotEmpty(propertyName, "propertyName");
-                throw new ArgumentException(Strings.ArgumentPropertyNull(propertyName, parameterName));
+                NotEmpty(parameterName, nameof(parameterName));
+                NotEmpty(propertyName, nameof(propertyName));
+
+                throw new ArgumentException(CoreStrings.ArgumentPropertyNull(propertyName, parameterName));
             }
 
             return value;
@@ -49,8 +51,9 @@ namespace Microsoft.Data.Entity.Utilities
 
             if (value.Count == 0)
             {
-                NotEmpty(parameterName, "parameterName");
-                throw new ArgumentException(Strings.CollectionArgumentIsEmpty(parameterName));
+                NotEmpty(parameterName, nameof(parameterName));
+
+                throw new ArgumentException(CoreStrings.CollectionArgumentIsEmpty(parameterName));
             }
 
             return value;
@@ -66,12 +69,13 @@ namespace Microsoft.Data.Entity.Utilities
             }
             else if (value.Trim().Length == 0)
             {
-                e = new ArgumentException(Strings.ArgumentIsEmpty(parameterName));
+                e = new ArgumentException(CoreStrings.ArgumentIsEmpty(parameterName));
             }
 
             if (e != null)
             {
-                NotEmpty(parameterName, "parameterName");
+                NotEmpty(parameterName, nameof(parameterName));
+
                 throw e;
             }
 
@@ -81,10 +85,11 @@ namespace Microsoft.Data.Entity.Utilities
         public static string NullButNotEmpty(string value, [InvokerParameterName] [NotNull] string parameterName)
         {
             if (!ReferenceEquals(value, null)
-                && value.Length == 0)
+                && (value.Length == 0))
             {
-                NotEmpty(parameterName, "parameterName");
-                throw new ArgumentException(Strings.ArgumentIsEmpty(parameterName));
+                NotEmpty(parameterName, nameof(parameterName));
+
+                throw new ArgumentException(CoreStrings.ArgumentIsEmpty(parameterName));
             }
 
             return value;
@@ -97,20 +102,9 @@ namespace Microsoft.Data.Entity.Utilities
 
             if (value.Any(e => e == null))
             {
-                NotEmpty(parameterName, "parameterName");
+                NotEmpty(parameterName, nameof(parameterName));
+
                 throw new ArgumentException(parameterName);
-            }
-
-            return value;
-        }
-
-        public static T IsDefined<T>(T value, [InvokerParameterName] [NotNull] string parameterName)
-            where T : struct
-        {
-            if (!Enum.IsDefined(typeof(T), value))
-            {
-                NotEmpty(parameterName, "parameterName");
-                throw new ArgumentException(Strings.InvalidEnumValue(parameterName, typeof(T)));
             }
 
             return value;
@@ -120,8 +114,9 @@ namespace Microsoft.Data.Entity.Utilities
         {
             if (!value.GetTypeInfo().IsClass)
             {
-                NotEmpty(parameterName, "parameterName");
-                throw new ArgumentException(Strings.InvalidEntityType(parameterName, value));
+                NotEmpty(parameterName, nameof(parameterName));
+
+                throw new ArgumentException(CoreStrings.InvalidEntityType(value, parameterName));
             }
 
             return value;

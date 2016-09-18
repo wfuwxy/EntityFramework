@@ -1,79 +1,52 @@
-use assembly='WindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35'
-use namespace='System.IO.Packaging'
+use namespace="System.IO"
+use namespace="System.IO.Compression"
+use namespace="System.Linq"
+
+default BASE_DIR_LOCAL='${Directory.GetCurrentDirectory()}'
+default BUILD_DIR_LOCAL='${Path.Combine(BASE_DIR_LOCAL, "artifacts", "build")}'
 
 var VERSION='0.1'
 var FULL_VERSION='0.1'
 var AUTHORS='Microsoft Open Technologies, Inc.'
-
+-BuildQuality = '';
 use-standard-lifecycle
 k-standard-goals
 
-#write-package-references target='initialize' if='!IsMono && !IsTeamCity'
+#csproj-initialize target='initialize' if='(!IsMono && !IsTeamCity && E("APPVEYOR") == null) || E("IsEFPerfBuild") != null'
   var programFilesX86='${Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)}'
   var buildProgram='${Path.Combine(programFilesX86, "MSBuild", "14.0", "Bin", "MSBuild.exe")}'
   for each='var projectFile in Files.Include("src/**/*.csproj").Include("test/**/*.csproj")'
-    exec program='${buildProgram}' commandline='${projectFile} /t:WritePackageReferences /v:m /nologo /p:Configuration=${E("Configuration")}'
+    exec program='${buildProgram}' commandline='${projectFile} /t:GenerateProjectLockTargets /v:m /nologo /p:Configuration=${E("Configuration")}'
 
-@{
-    var packagesDir = Environment.GetEnvironmentVariable("KRE_PACKAGES")
-        ?? Path.Combine(
-            Environment.GetEnvironmentVariable("USERPROFILE") ?? Environment.GetEnvironmentVariable("HOME"),
-            ".k",
-            "packages");
-}
-
-#nuspec-pack target="compile"
-    var K_BUILD_VERSION='${E("K_BUILD_VERSION")}'
-    nuget-pack each='var nuspecFile in Files.Include("src/**/*.nuspec")' outputDir='artifacts/build' extra='-Properties "star=${K_BUILD_VERSION};author=${AUTHORS}"'
-
-#nupkg-patch target='compile'
-    @{
-        var packagePaths = Files.Include("artifacts/build/**/EntityFramework.Commands.*.nupkg")
-            .Exclude("**/*.symbols.nupkg");
-        foreach (var packagePath in packagePaths)
-        {
-            using (var package = Package.Open(packagePath, FileMode.Open, FileAccess.ReadWrite))
-            {
-                CreatePartFromFile(
-                    package,
-                    @"src\EntityFramework.Commands\tools\EntityFramework.psd1",
-                    @"tools\EntityFramework.psd1");
-                CreatePartFromFile(
-                    package,
-                    @"src\EntityFramework.Commands\tools\EntityFramework.psm1",
-                    @"tools\EntityFramework.psm1");
-                CreatePartFromFile(
-                    package,
-                    @"src\EntityFramework.Commands\tools\Handlers.cs",
-                    @"tools\Handlers.cs");
-                CreatePartFromFile(
-                    package,
-                    @"src\EntityFramework.Commands\IHandlers.cs",
-                    @"tools\IHandlers.cs");
-                CreatePartFromFile(
-                    package,
-                    @"src\EntityFramework.Commands\tools\init.ps1",
-                    @"tools\init.ps1");
-            }
-        }
+#publish-efci-artifacts target="test-compile" if='IsTeamCity'
+  @{
+    // produce .NET Core test artifacts for testing
+    var testProjects = Files.Include("test/Microsoft.EntityFrameworkCore.SqlServer.FunctionalTests/project.json")
+    .Include("test/Microsoft.EntityFrameworkCore.SqlServer.Design.FunctionalTests/project.json");
+    var tfm = "netcoreapp1.0";
+    foreach (var projectFile in testProjects)
+    {
+      var projectName = Path.GetFileName(Path.GetDirectoryName(projectFile));
+      var output = Path.Combine(Directory.GetCurrentDirectory(), "artifacts/tests", projectName, tfm);
+      Dotnet(string.Format("publish --configuration Release --output {0} --framework {1} {2}", output, tfm, projectFile));
     }
+  }
 
-functions
-    @{
-        PackagePart CreatePartFromFile(
-            Package destination,
-            string sourceFileName,
-            string partUriString)
-        {
-            var partUri = PackUriHelper.CreatePartUri(new Uri(partUriString, UriKind.Relative));
-            var packagePart = destination.CreatePart(partUri, "application/octet", CompressionOption.Maximum);
-
-            using (var sourceStream = File.OpenRead(sourceFileName))
-            using (var stream = packagePart.GetStream())
-            {
-                sourceStream.CopyTo(stream);
-            }
-
-            return packagePart;
-        }
+#remove-intermediates
+  @{
+    Directory.CreateDirectory(BUILD_DIR_LOCAL);
+    foreach (var p in Files
+      .Include(Path.Combine(BUILD_DIR_LOCAL, "**\\Tools.*.nupkg"))
+      )
+    {
+      Log.Info("Deleting " + p);
+      File.Delete(p);
     }
+  }
+
+#repack-tools .remove-intermediates target='compile' if='Directory.Exists("src") && !IsTravisCi'
+  @{
+        var configurationX86 = E("Configuration") + "_x86";
+        DotnetBuild("src/Tools.Console", configurationX86, "net451");
+        Dotnet("run -p tools/CommandsPackager " + E("Configuration"));
+   }

@@ -6,6 +6,7 @@ _ReSharper.*/
 packages/
 artifacts/
 PublishProfiles/
+.vscode/
 *.user
 *.suo
 *.cache
@@ -25,3 +26,14 @@ nuget.exe
 *.ipch
 *.sln.ide
 *.lock.json
+*.db
+.vs/
+config.test.json
+*.log
+/.build/
+.testPublish/
+.idea/
+*.sln.iml
+*.DotSettings
+.idea.*
+.cr/
